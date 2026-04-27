@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
-set -e
 
-pip install -r backend/requirements.txt
-python backend/manage.py collectstatic --no-input
-python backend/manage.py migrate
+#!/usr/bin/env bash
+
+pip install -r requirements.txt
+python manage.py collectstatic --no-input
+python manage.py migrate
