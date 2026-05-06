@@ -1,39 +1,46 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiService {
-  late final Dio dio;
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+  ApiService._internal();
 
-  ApiService() {
-    dio = Dio(
-      BaseOptions(
-        baseUrl: "https://api.example.com",
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      ),
-    );
+  final _storage = const FlutterSecureStorage();
 
-    _setupInterceptors();
-  }
+  static const String baseUrl = 'https://job-board-api-vcba.onrender.com';
 
-  void _setupInterceptors() {
-    dio.interceptors.add(
+  late final Dio dio = Dio(BaseOptions(
+    baseUrl: baseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+    headers: {'Content-Type': 'application/json'},
+  ))
+    ..interceptors.add(LogInterceptor(
+      request: true,
+      requestHeader: true,
+      requestBody: true,
+      responseHeader: false,
+      responseBody: true,
+      error: true,
+    ))
+    ..interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
-          print("REQUEST: ${options.method} ${options.path}");
+        onRequest: (options, handler) async {
+          final token = await _storage.read(key: 'access_token');
+
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
           return handler.next(options);
         },
-        onResponse: (response, handler) {
-          print("RESPONSE: ${response.statusCode}");
-          return handler.next(response);
-        },
         onError: (error, handler) {
-          print("ERROR: ${error.message}");
+          print('ERROR URL: ${error.requestOptions.uri}');
+          print('ERROR STATUS: ${error.response?.statusCode}');
+          print('ERROR DATA: ${error.response?.data}');
           return handler.next(error);
         },
       ),
     );
-  }
 }
